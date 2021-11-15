@@ -1,0 +1,59 @@
+{
+	"name": "vscode-zhlint",
+	"displayName": "ZhLint",
+	"description": "Integrates Zhlint JavaScript into VS Code.",
+	"version": "2.2.2",
+	"author": "Microsoft Corporation",
+	"license": "MIT",
+	"publisher": "echozh",
+	"categories": [
+		"Programming Languages",
+		"Linters"
+	],
+	"keywords": [
+		"multi-root ready"
+	],
+	"engines": {
+		"vscode": "^1.61.0"
+	},
+	"activationEvents": [
+		"onLanguage:plaintext",
+		"onCommand:vscode-zhlint"
+	],
+	"main": "./client/out/extension",
+	"contributes": {
+		"commands": [
+			{
+				"command": "vscode-zhlint",
+				"title": "ZhLint Format"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run webpack",
+		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
+		"webpack:dev": "npm run clean && webpack --mode none --config ./client/webpack.config.js && webpack --mode none --config ./server/webpack.config.js",
+		"compile": "tsc -b",
+		"compile:client": "tsc -b ./client/tsconfig.json",
+		"compile:server": "tsc -b ./server/tsconfig.json",
+		"watch": "tsc -b -w",
+		"test": "cd client && npm test && cd ..",
+		"lint": "node ./build/bin/all.js run lint",
+		"clean": "rimraf client/out && rimraf server/out",
+		"postinstall": "node ./build/bin/all.js install"
+	},
+	"devDependencies": {
+		"@types/mocha": "^9.0.0",
+		"@types/node": "^14.14.31",
+		"@typescript-eslint/eslint-plugin": "^4.32.0",
+		"@typescript-eslint/parser": "^4.32.0",
+		"eslint": "^7.32.0",
+		"merge-options": "^3.0.4",
+		"mocha": "^9.1.2",
+		"rimraf": "^3.0.2",
+		"ts-loader": "^9.2.6",
+		"typescript": "^4.4.3",
+		"webpack": "^5.55.1",
+		"webpack-cli": "^4.8.0"
+	}
+}

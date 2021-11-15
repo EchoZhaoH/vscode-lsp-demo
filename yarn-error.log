@@ -1,0 +1,87 @@
+Arguments: 
+  /usr/local/Cellar/node/14.5.0/bin/node /usr/local/Cellar/yarn/1.22.4/libexec/bin/yarn.js install
+
+PATH: 
+  /Users/echozh/Project/github/depot_tools:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/echozh/Project/github/depot_tools:/Users/echozh/.cargo/bin:/Users/echozh/.cargo/bin/cargo:/Users/echozh/.cargo/bin/cargo
+
+Yarn version: 
+  1.22.4
+
+Node version: 
+  14.5.0
+
+Platform: 
+  darwin x64
+
+Trace: 
+  Error: https://registry.npm.taobao.org/@types%2fmocha: tunneling socket could not be established, cause=connect EHOSTUNREACH 0.0.30.210:80 - Local (192.168.3.6:63946)
+      at ClientRequest.onError (/usr/local/Cellar/yarn/1.22.4/libexec/lib/cli.js:152234:17)
+      at Object.onceWrapper (events.js:421:26)
+      at ClientRequest.emit (events.js:314:20)
+      at Socket.socketErrorListener (_http_client.js:469:9)
+      at Socket.emit (events.js:314:20)
+      at emitErrorNT (internal/streams/destroy.js:100:8)
+      at emitErrorCloseNT (internal/streams/destroy.js:68:3)
+      at processTicksAndRejections (internal/process/task_queues.js:80:21)
+
+npm manifest: 
+  {
+  	"name": "vscode-zhlint",
+  	"displayName": "ZhLint",
+  	"description": "Integrates Zhlint JavaScript into VS Code.",
+  	"version": "2.2.2",
+  	"author": "Microsoft Corporation",
+  	"license": "MIT",
+  	"publisher": "echozh",
+  	"icon": "eslint_icon.png",
+  	"categories": [
+  		"Programming Languages",
+  		"Linters"
+  	],
+  	"keywords": [
+  		"multi-root ready"
+  	],
+  	"engines": {
+  		"vscode": "^1.61.0"
+  	},
+  	"activationEvents": [
+  		"onStartupFinished"
+  	],
+  	"extensionKind": [
+  		"workspace"
+  	],
+  	"main": "./client/out/extension",
+  	"scripts": {
+  		"vscode:prepublish": "npm run webpack",
+  		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
+  		"webpack:dev": "npm run clean && webpack --mode none --config ./client/webpack.config.js && webpack --mode none --config ./server/webpack.config.js",
+  		"compile": "tsc -b",
+  		"compile:client": "tsc -b ./client/tsconfig.json",
+  		"compile:server": "tsc -b ./server/tsconfig.json",
+  		"watch": "tsc -b -w",
+  		"test": "cd client && npm test && cd ..",
+  		"lint": "node ./build/bin/all.js run lint",
+  		"clean": "rimraf client/out && rimraf server/out",
+  		"postinstall": "node ./build/bin/all.js install"
+  	},
+  	"devDependencies": {
+  		"@types/mocha": "^9.0.0",
+  		"@types/node": "^14.14.31",
+  		"@typescript-eslint/eslint-plugin": "^4.32.0",
+  		"@typescript-eslint/parser": "^4.32.0",
+  		"eslint": "^7.32.0",
+  		"merge-options": "^3.0.4",
+  		"mocha": "^9.1.2",
+  		"rimraf": "^3.0.2",
+  		"ts-loader": "^9.2.6",
+  		"typescript": "^4.4.3",
+  		"webpack": "^5.55.1",
+  		"webpack-cli": "^4.8.0"
+  	}
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
