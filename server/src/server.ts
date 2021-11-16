@@ -3,119 +3,123 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 import {
-	createConnection,
-	InitializeParams,
-	CompletionItem,
-	CompletionItemKind,
-	TextDocumentPositionParams,
 	TextDocuments,
-	Message as LMessage,
-	RequestMessage as LRequestMessage,
-	ResponseMessage as LResponseMessage
+	createConnection,
+	ProposedFeatures,
+	TextDocumentSyncKind,
+	ExecuteCommandRequest,
+	VersionedTextDocumentIdentifier,
+	ExecuteCommandParams,
+	Diagnostic,
+	DiagnosticSeverity,
+	TextEdit,
+	Range,
+	WorkspaceChange
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
+import { run } from 'zhlint';
 
-function isRequestMessage(message: LMessage | undefined): message is LRequestMessage {
-	const candidate = <LRequestMessage>message;
-	return candidate && typeof candidate.method === 'string' && (typeof candidate.id === 'string' || typeof candidate.id === 'number');
+// 创建连接
+const connection = createConnection(ProposedFeatures.all);
+
+// 创建 text document
+let documents!: TextDocuments<TextDocument>;
+
+connection.onInitialize((_params, _cancel, progress) => {
+	documents = new TextDocuments(TextDocument);
+	documentSetup();
+	progress.done();
+	return {
+		capabilities: {
+			textDocumentSync: TextDocumentSyncKind.Incremental,
+			// 补全支持
+			completionProvider: {
+				resolveProvider: true,
+			},
+			// 格式化支持
+			documentFormattingProvider: true
+		}
+	};
+});
+
+// 监听请求
+connection.onRequest(ExecuteCommandRequest.type, (args: ExecuteCommandParams) => {
+	const params = args.arguments![0];
+	switch(args.command) {
+		// 格式诊断
+		case 'vscode-zhlint-diagnostic':
+			diagnostic(params);
+			break;
+		// 格式化
+		case 'vscode-zhlint-format':
+			const editor = format(params);
+			if (!editor) {
+				return;
+			}
+			const workspace = new WorkspaceChange();
+			const textChange = workspace.getTextEditChange(params);
+			textChange.add(editor);
+			return connection.workspace.applyEdit(workspace.edit).then((response) => {
+				if (!response.applied) {
+					connection.console.error(`Failed to apply command: ${params.command}`);
+				}
+				return {};
+			}, () => {
+				connection.console.error(`Failed to apply command: ${params.command}`);
+			});
+			break;
+	}
+	return;
+});
+
+function diagnostic(args: VersionedTextDocumentIdentifier) {
+	const uri = args.uri;
+	const textDocument = documents.get(uri);
+	if (textDocument === undefined || textDocument.version !== args.version) {
+		return;
+	}
+	const originalText = textDocument.getText();
+	const zhLint = run(originalText);
+	const diagnostics: Diagnostic[] = zhLint.validations.map(v => ({
+		range: {
+			start: textDocument.positionAt(v.index),
+			end: textDocument.positionAt(v.index + v.length)
+		},
+		message: v.message,
+		source: 'zhlint',
+		severity: DiagnosticSeverity.Error
+	}));
+	connection.sendDiagnostics({uri: uri, diagnostics});
 }
 
-const connection = createConnection({
-	cancelUndispatched: (message: LMessage) => {
-		// Code actions can savely be cancel on request.
-		if (isRequestMessage(message) && message.method === 'textDocument/codeAction') {
-			const response: LResponseMessage = {
-				jsonrpc: message.jsonrpc,
-				id: message.id,
-				result: null
-			};
-			return response;
-		}
-		return undefined;
+function format(args: VersionedTextDocumentIdentifier) {
+	const uri = args.uri;
+	const textDocument = documents.get(uri);
+	if (textDocument === undefined || textDocument.version !== args.version) {
+		return;
 	}
-});
+	const originalText = textDocument.getText();
+	const zhLint = run(originalText);
+	if (!zhLint.validations.length) {
+		return;
+	}
+	const range = Range.create(textDocument.positionAt(0), textDocument.positionAt(textDocument.getText().length));
+	return TextEdit.replace(range, zhLint.result);
+}
 
-// Create a simple text document manager.
-const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
-
-connection.onInitialize((params: InitializeParams) => {
-	console.log('init: ', params);
-	return Promise.resolve({
-		capabilities: {
-		}
+function documentSetup() {
+	// 将当前的 text document 监听到当前连接
+	documents.listen(connection);
+	documents.onDidChangeContent(e => {
+		diagnostic({
+			version: e.document.version,
+			uri: e.document.uri
+		});
 	});
-});
+}
 
-connection.onInitialized(() => {
-	console.log('inited');
-});
-
-
-connection.onDidChangeConfiguration(change => {
-	console.log('did change: ', change);
-});
-
-// Only keep settings for open documents
-documents.onDidClose(e => {
-	console.log('document e: ', e);
-});
-
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
-	console.log('document change: ', change);
-});
-documents.onDidOpen(() => {
-	console.log('document open');
-});
-
-connection.onDidChangeWatchedFiles(_change => {
-	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
-});
-
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		return [
-			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2
-			}
-		];
-	}
-);
-
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
-		}
-		return item;
-	}
-);
-
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-documents.listen(connection);
-
-// Listen on the connection
+// 监听连接
 connection.listen();
