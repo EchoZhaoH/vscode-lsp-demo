@@ -18,14 +18,19 @@
 	},
 	"activationEvents": [
 		"onLanguage:plaintext",
-		"onCommand:vscode-zhlint"
+		"onCommand:vscode-zhlint-format",
+		"onCommand:vscode-zhlint-diagnostic"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"commands": [
 			{
-				"command": "vscode-zhlint",
+				"command": "vscode-zhlint-format",
 				"title": "ZhLint Format"
+			},
+			{
+				"command": "vscode-zhlint-diagnostic",
+				"title": "ZhLint Diagnostic"
 			}
 		]
 	},

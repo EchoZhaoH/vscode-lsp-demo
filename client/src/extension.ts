@@ -4,13 +4,16 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, commands, window } from 'vscode';
 
 import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
+	VersionedTextDocumentIdentifier,
+	TransportKind,
+	ExecuteCommandParams,
+	ExecuteCommandRequest
 } from 'vscode-languageclient/node';
 
 let client: LanguageClient;
@@ -55,12 +58,45 @@ export function activate(context: ExtensionContext) {
 	);
 
 	// Start the client. This will also launch the server
-	// const disposable = commands.registerCommand('vscode-zhlint', () => {
-	// 	console.log('success');
-	// });
-	// context.subscriptions.push(disposable);
-	console.log('client start');
-	client.start();
+	const disposable = [
+		commands.registerCommand('vscode-zhlint-diagnostic', async () => {
+			const textEditor = window.activeTextEditor;
+			if (!textEditor) {
+				return;
+			}
+			const textDocument: VersionedTextDocumentIdentifier = {
+				uri: textEditor.document.uri.toString(),
+				version: textEditor.document.version
+			};
+			const params: ExecuteCommandParams = {
+				command: 'vscode-zhlint-diagnostic',
+				arguments: [textDocument]
+			};
+			await client.onReady();
+			client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, () => {
+				void window.showErrorMessage('Failed to apply ZhLint fixes to the document.');
+			});
+		}),
+		commands.registerCommand('vscode-zhlint-format', async() => {
+			const textEditor = window.activeTextEditor;
+			if (!textEditor) {
+				return;
+			}
+			const textDocument: VersionedTextDocumentIdentifier = {
+				uri: textEditor.document.uri.toString(),
+				version: textEditor.document.version
+			};
+			const params: ExecuteCommandParams = {
+				command: 'vscode-zhlint-format',
+				arguments: [textDocument]
+			};
+			await client.onReady();
+			client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, () => {
+				void window.showErrorMessage('Failed to apply ZhLint fixes to the document.');
+			});
+		})
+	];
+	context.subscriptions.push(client.start(), ...disposable);
 }
 
 export function deactivate(): Thenable<void> | undefined {
