@@ -57,43 +57,32 @@ export function activate(context: ExtensionContext) {
 		clientOptions
 	);
 
+	async function registerCommand(command: string) {
+		const textEditor = window.activeTextEditor;
+		if (!textEditor) {
+			return;
+		}
+		const textDocument: VersionedTextDocumentIdentifier = {
+			uri: textEditor.document.uri.toString(),
+			version: textEditor.document.version
+		};
+		const params: ExecuteCommandParams = {
+			command: command,
+			arguments: [textDocument]
+		};
+		await client.onReady();
+		client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, () => {
+			void window.showErrorMessage('Failed to apply ZhLint fixes to the document.');
+		});
+	}
+
 	// Start the client. This will also launch the server
 	const disposable = [
-		commands.registerCommand('vscode-zhlint-diagnostic', async () => {
-			const textEditor = window.activeTextEditor;
-			if (!textEditor) {
-				return;
-			}
-			const textDocument: VersionedTextDocumentIdentifier = {
-				uri: textEditor.document.uri.toString(),
-				version: textEditor.document.version
-			};
-			const params: ExecuteCommandParams = {
-				command: 'vscode-zhlint-diagnostic',
-				arguments: [textDocument]
-			};
-			await client.onReady();
-			client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, () => {
-				void window.showErrorMessage('Failed to apply ZhLint fixes to the document.');
-			});
+		commands.registerCommand('vscode-zhlint-diagnostic', () => {
+			void registerCommand('vscode-zhlint-diagnostic');
 		}),
 		commands.registerCommand('vscode-zhlint-format', async() => {
-			const textEditor = window.activeTextEditor;
-			if (!textEditor) {
-				return;
-			}
-			const textDocument: VersionedTextDocumentIdentifier = {
-				uri: textEditor.document.uri.toString(),
-				version: textEditor.document.version
-			};
-			const params: ExecuteCommandParams = {
-				command: 'vscode-zhlint-format',
-				arguments: [textDocument]
-			};
-			await client.onReady();
-			client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, () => {
-				void window.showErrorMessage('Failed to apply ZhLint fixes to the document.');
-			});
+			void registerCommand('vscode-zhlint-diagnostic');
 		})
 	];
 	context.subscriptions.push(client.start(), ...disposable);
